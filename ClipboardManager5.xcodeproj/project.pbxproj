@@ -16,6 +16,7 @@
 		E1604E022B911B9E00CCE76E /* ClipboardManager5Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1604E012B911B9E00CCE76E /* ClipboardManager5Tests.swift */; };
 		E1604E0C2B911B9E00CCE76E /* ClipboardManager5UITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1604E0B2B911B9E00CCE76E /* ClipboardManager5UITests.swift */; };
 		E1604E0E2B911B9E00CCE76E /* ClipboardManager5UITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1604E0D2B911B9E00CCE76E /* ClipboardManager5UITestsLaunchTests.swift */; };
+		E1AE59DB2B911DC700463C8B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1AE59DA2B911DC700463C8B /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		E1604E072B911B9E00CCE76E /* ClipboardManager5UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClipboardManager5UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1604E0B2B911B9E00CCE76E /* ClipboardManager5UITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager5UITests.swift; sourceTree = "<group>"; };
 		E1604E0D2B911B9E00CCE76E /* ClipboardManager5UITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager5UITestsLaunchTests.swift; sourceTree = "<group>"; };
+		E1AE59DA2B911DC700463C8B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +81,7 @@
 		E1604DDE2B911B9B00CCE76E = {
 			isa = PBXGroup;
 			children = (
+				E1AE59DA2B911DC700463C8B /* AppDelegate.swift */,
 				E1604DE92B911B9B00CCE76E /* ClipboardManager5 */,
 				E1604E002B911B9E00CCE76E /* ClipboardManager5Tests */,
 				E1604E0A2B911B9E00CCE76E /* ClipboardManager5UITests */,
@@ -268,6 +271,7 @@
 				E1604DF42B911B9D00CCE76E /* Persistence.swift in Sources */,
 				E1604DED2B911B9B00CCE76E /* ContentView.swift in Sources */,
 				E1604DF72B911B9D00CCE76E /* ClipboardManager5.xcdatamodeld in Sources */,
+				E1AE59DB2B911DC700463C8B /* AppDelegate.swift in Sources */,
 				E1604DEB2B911B9B00CCE76E /* ClipboardManager5App.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

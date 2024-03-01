@@ -9,12 +9,14 @@ import SwiftUI
 
 @main
 struct ClipboardManager5App: App {
-    let persistenceController = PersistenceController.shared
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    // Omit the WindowGroup to prevent window creation
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+        Settings { // Use a Settings scene as a workaround or keep this block empty
+            Text("Settings placeholder").frame(width: 200, height: 200)
         }
     }
 }
+
+
