@@ -17,7 +17,7 @@ extension String {
 }
 
     
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var window: NSWindow?
     var statusBarItem: NSStatusItem!
     var clipboardTimer: Timer?
@@ -26,23 +26,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var isOptionKeyPressed = false
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-            setupCoreData()
-            setupStatusBarItem()
-            startClipboardMonitoring()
-            setupOptionKeyMonitoring()
-        }
+        setupCoreData()
+        setupStatusBarItem()
+        startClipboardMonitoring()
+        setupOptionKeyMonitoring()
+    }
 
     func setupCoreData() {
-            let _ = PersistenceController.shared
-        }
+        let _ = PersistenceController.shared // Ensure PersistenceController is correctly implemented
+    }
 
     func setupStatusBarItem() {
-            statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-            if let button = statusBarItem.button {
-                button.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard Manager")
-            }
-            updateStatusBarMenu()
+        statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusBarItem.button {
+            button.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Clipboard Manager")
         }
+        statusBarItem.menu = NSMenu()
+        statusBarItem.menu?.delegate = self
+        updateStatusBarMenu()
+    }
 
     @objc func updateMenuForCurrentModifierFlags() {
             let flags = NSEvent.modifierFlags
@@ -126,62 +128,113 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func setupOptionKeyMonitoring() {
-        NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
-            let isOptionPressed = event.modifierFlags.contains(.option)
-            print("Global flags changed: Option key is \(isOptionPressed ? "pressed" : "not pressed")")
-            self?.isOptionKeyPressed = isOptionPressed
-            self?.updateStatusBarMenu()
+            NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+                self?.isOptionKeyPressed = event.modifierFlags.contains(.option)
+                // As this is a global monitor, direct UI updates here may not reflect in active app state
+            }
+        }
+    
+    // NSMenuDelegate method
+        func menuWillOpen(_ menu: NSMenu) {
+            let optionKeyPressed = NSEvent.modifierFlags.contains(.option)
+            updateMenuItemsForOptionKeyState(optionKeyPressed: optionKeyPressed)
+        }
+    
+    func updateMenuItemsForOptionKeyState(optionKeyPressed: Bool) {
+            // Adjust your menu items based on the optionKeyPressed state
+            // This is where you'd add or remove the star symbol or any other indicators
+            print("Option key pressed: \(optionKeyPressed)")
+            updateStatusBarMenu() // Reconstruct the menu with updated items
+        }
+    
+    func handleFlagsChanged(_ event: NSEvent) {
+        let optionKeyPressed = event.modifierFlags.contains(.option)
+        if self.isOptionKeyPressed != optionKeyPressed {
+            self.isOptionKeyPressed = optionKeyPressed
+            print("Option key state changed: \(optionKeyPressed ? "Pressed" : "Released")")
+            DispatchQueue.main.async {
+                self.updateStatusBarMenu()
+            }
         }
     }
     
     func startClipboardMonitoring() {
-            clipboardTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                self?.checkForNewClipboardContent()
-            }
+        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.checkForNewClipboardContent()
         }
+    }
 
     func checkForNewClipboardContent() {
-            guard !isInternalCopy else { return }
-            let currentContent = NSPasteboard.general.string(forType: .string)
-            if let content = currentContent, content != lastCapturedContent {
-                lastCapturedContent = content
-                saveNewClipboardContent(content)
-            }
+        guard !isInternalCopy, let content = NSPasteboard.general.string(forType: .string), content != lastCapturedContent else { return }
+        
+        lastCapturedContent = content
+        print("Detected new clipboard content: \(content)")
+        
+        // Save the new clipboard content and update the menu immediately.
+        saveNewClipboardContent(content)
+        
+        // Ensure the menu update is called here, right after new content is detected and saved.
+        DispatchQueue.main.async { [weak self] in
+            self?.updateStatusBarMenu()
         }
+    }
 
     func saveNewClipboardContent(_ content: String) {
+        // Access the Core Data managed object context. This is essentially the workspace
+        // where your app's managed objects (data) are handled.
         let context = PersistenceController.shared.container.viewContext
+
+        // Create a fetch request for ClipboardItem entities. This is used to query
+        // the database for entities that match certain conditions.
         let fetchRequest: NSFetchRequest<ClipboardItem> = ClipboardItem.fetchRequest()
+
+        // Set a predicate on the fetch request. This specifies that we're only interested
+        // in ClipboardItem entities where the 'content' attribute matches the 'content' parameter
+        // passed into this function. It's like saying "find me a ClipboardItem where its content is equal to this string".
         fetchRequest.predicate = NSPredicate(format: "content == %@", content)
 
         do {
-            let existingItems = try context.fetch(fetchRequest)
-            if let existingItem = existingItems.first {
-                // Item exists, update timestamp
+            // Execute the fetch request on the context. This attempts to find any existing items
+            // in the database that match the predicate set above.
+            let results = try context.fetch(fetchRequest)
+
+            // Check if the fetch request found any matching items.
+            if let existingItem = results.first {
+                // If there's an existing item, it means we've previously saved an item with the same content.
+                // Instead of creating a duplicate, we simply update its timestamp to the current date and time.
+                // This could be useful for maintaining a "recently used" list where the most recent items
+                // are always at the top.
                 existingItem.timestamp = Date()
                 print("Existing item, updated timestamp.")
             } else {
-                // No existing item, create new
+                // If no existing item was found, it means this is the first time we're saving this particular piece of content.
+                // We then create a new ClipboardItem entity in the context, set its content and timestamp,
+                // and prepare it to be saved to the database.
                 let newItem = ClipboardItem(context: context)
                 newItem.content = content
                 newItem.timestamp = Date()
                 print("New clipboard item saved.")
             }
+
+            // Attempt to save any changes made in the context (including our new or updated item) to the database.
+            // If no changes are detected, this operation simply does nothing.
             try context.save()
         } catch {
-            print("Error saving clipboard content: \(error)")
+            // If there was an error during the fetch request or saving the context,
+            // print the error to the console. This could be due to a variety of issues,
+            // such as constraints in the database being violated.
+            print("Error saving clipboard item: \(error)")
         }
     }
         
     func updateStatusBarMenu() {
         let menu = NSMenu()
 
-        // Create Favourites Submenu
+        // Create Favourites Submenu without modification
         let favouritesMenu = NSMenu(title: "Favourites")
         let favouritesItems = fetchFavouriteClipboardItems()
         for item in favouritesItems {
-            let menuItemTitle = item.content?.truncating(to: 24) ?? ""
-            let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+            let menuItem = NSMenuItem(title: item.content?.truncating(to: 24) ?? "", action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
             menuItem.representedObject = item
             favouritesMenu.addItem(menuItem)
         }
@@ -192,14 +245,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Separator
         menu.addItem(NSMenuItem.separator())
 
-        // Add Recent Clipboard Items
-        let clipboardItems = fetchRecentClipboardItems()
-        for item in clipboardItems {
-            let menuItemTitle = item.content?.truncating(to: 24) ?? ""
-            let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
-            menuItem.representedObject = item
-            menu.addItem(menuItem)
-        }
+        // Add Recent Clipboard Items with SF Symbols for favourites
+           let clipboardItems = fetchRecentClipboardItems()
+           for item in clipboardItems {
+               let menuItem = NSMenuItem(title: item.content?.truncating(to: 24) ?? "", action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+               menuItem.representedObject = item
+               // Check if the item is a favourite and set an SF Symbol accordingly
+               if item.isFavourite {
+                   menuItem.image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: nil)
+               }
+               menu.addItem(menuItem)
+           }
 
         // Quit item
         menu.addItem(NSMenuItem.separator())
