@@ -114,17 +114,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    func markAsFavourite(item: ClipboardItem) {
-        item.isFavourite.toggle() // This toggles the isFavourite property
+    func markAsFavourite(item: ClipboardItem, shouldToggle: Bool) {
+        if shouldToggle {
+            print("Toggling favourite status for item. Current status: \(item.isFavourite)")
+            item.isFavourite.toggle()
+        } else {
+            // If shouldToggle is false, you still might want to ensure the item is marked as favourite.
+            // So, you could explicitly set it to true here if that's the intended logic.
+            // For example:
+            // item.isFavourite = true
+        }
+        
         do {
             try PersistenceController.shared.container.viewContext.save()
-            print("Item \(item.isFavourite ? "marked as favourite" : "unmarked as favourite").")
+            print("Toggle favourite status: Item \(item.isFavourite ? "is now a favourite" : "is no longer a favourite").")
         } catch {
-            print("Failed to toggle favourite status: \(error)")
+            print("Toggle favourite status: Failed to toggle favourite status: \(error)")
         }
-        DispatchQueue.main.async {
-            self.updateStatusBarMenu() // Refresh the menu to show the updated favourites
-        }
+        
+        // This method now supports being called with shouldToggle to either just mark as favourite without toggling,
+        // or to toggle the state based on the shouldToggle flag.
     }
     
     func setupOptionKeyMonitoring() {
@@ -230,37 +239,52 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func updateStatusBarMenu() {
         let menu = NSMenu()
 
-        // Create Favourites Submenu without modification
+        // Log: Creating Favourites Submenu
+        print("Creating Favourites Submenu...")
         let favouritesMenu = NSMenu(title: "Favourites")
         let favouritesItems = fetchFavouriteClipboardItems()
         for item in favouritesItems {
-            let menuItem = NSMenuItem(title: item.content?.truncating(to: 24) ?? "", action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+            let menuItemTitle = item.content?.truncating(to: 24, truncationIndicator: "...") ?? ""
+            let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
             menuItem.representedObject = item
+            // No need to set an icon for favourites here as they are inherently favourite items
             favouritesMenu.addItem(menuItem)
         }
         let favouritesMenuItem = NSMenuItem(title: "Favourites", action: nil, keyEquivalent: "")
         favouritesMenuItem.submenu = favouritesMenu
         menu.addItem(favouritesMenuItem)
 
-        // Separator
+        // Log: Adding Separator
+        print("Adding Separator...")
         menu.addItem(NSMenuItem.separator())
 
-        // Add Recent Clipboard Items with SF Symbols for favourites
-           let clipboardItems = fetchRecentClipboardItems()
-           for item in clipboardItems {
-               let menuItem = NSMenuItem(title: item.content?.truncating(to: 24) ?? "", action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
-               menuItem.representedObject = item
-               // Check if the item is a favourite and set an SF Symbol accordingly
-               if item.isFavourite {
-                   menuItem.image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: nil)
-               }
-               menu.addItem(menuItem)
-           }
+        // Log: Adding Clipboard Items from the Recent List
+        print("Adding Clipboard Items...")
+        let clipboardItems = fetchRecentClipboardItems()
+        print("Processing \(clipboardItems.count) Clipboard Items for the main menu...")
+        for item in clipboardItems {
+            let menuItemTitle = item.content?.truncating(to: 24, truncationIndicator: "...") ?? ""
+            let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+            menuItem.representedObject = item
 
-        // Quit item
+            // Apply the favourite icon to favourites for visual feedback
+            if item.isFavourite {
+                print("Applying star to '\(item.content ?? "unknown")' as it's a favourite.")
+                menuItem.image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favourite")
+            } else {
+                print("Item '\(item.content ?? "unknown")' is not a favourite.")
+            }
+
+            menu.addItem(menuItem)
+        }
+
+        // Log: Adding Quit Item
+        print("Adding Quit Item...")
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
+        // Log: Finished Updating StatusBar Menu
+        print("Finished Updating StatusBar Menu.")
         statusBarItem.menu = menu
     }
 
@@ -281,31 +305,59 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     
     func addClipboardItems(to menu: NSMenu) {
-            let clipboardItems = fetchRecentClipboardItems()
-            for item in clipboardItems {
-                let menuItemTitle = item.content?.truncating(to: 24) ?? ""
-                let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
-                menuItem.representedObject = item
-                menu.addItem(menuItem)
+        let clipboardItems = fetchRecentClipboardItems()
+        print("Processing \(clipboardItems.count) Clipboard Items...")
+        for item in clipboardItems {
+            let menuItemTitle = item.content?.truncating(to: 24, truncationIndicator: "...") ?? ""
+            let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+            menuItem.representedObject = item
+            print("Item '\(item.content ?? "unknown")' favourite status: \(item.isFavourite)")
+            if item.isFavourite {
+                print("Applying star to '\(item.content ?? "unknown")'")
+                menuItem.image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favourite")
             }
+            menu.addItem(menuItem)
         }
+    }
     
     @objc func clipboardItemClicked(_ sender: NSMenuItem) {
         guard let item = sender.representedObject as? ClipboardItem else {
             print("Failed to retrieve ClipboardItem from menu item.")
             return
         }
-        
+
         let optionKeyPressed = NSApp.currentEvent?.modifierFlags.contains(.option) ?? false
-        print("Option key pressed state in clipboardItemClicked: \(optionKeyPressed)")
+        // Determine if the click came from the Favourites submenu
+        let isFromFavouritesMenu = sender.menu?.title == "Favourites"
+        print("Option key pressed: \(optionKeyPressed), Is from Favourites Menu: \(isFromFavouritesMenu)")
 
         if optionKeyPressed {
-            print("Attempting to toggle favourite status for item with content: \(item.content ?? "nil")")
-            toggleFavouriteStatus(for: item)
+            // When toggling from the Favourites menu, check if it should really toggle or just ensure it's marked as favourite
+            // This part was missing clarity on how to handle items directly from the Favourites menu
+            if isFromFavouritesMenu {
+                // If already a favourite, attempt to unfavourite
+                if item.isFavourite {
+                    print("Attempting to unfavourite item with content: \(item.content ?? "nil")")
+                    item.isFavourite = false
+                }
+            } else {
+                // For items not in the Favourites menu, toggle as usual
+                print("Toggling favourite status for item with content: \(item.content ?? "nil")")
+                item.isFavourite.toggle()
+            }
+
+            do {
+                try PersistenceController.shared.container.viewContext.save()
+                print("Favourite status updated for item with content: \(item.content ?? "nil"). New status: \(item.isFavourite)")
+            } catch {
+                print("Failed to update favourite status for item: \(error)")
+            }
         } else {
-            print("Copying content to clipboard for item with content: \(item.content ?? "nil")")
+            // Handle copying content to clipboard
             copyItemContentToClipboard(item)
         }
+
+        // Refresh the menu to reflect changes
         refreshMenuImmediately()
     }
 
