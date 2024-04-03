@@ -1,28 +1,24 @@
 # ClipboardManager
 
-ClipboardManager is a macOS clipboard manager that helps users track and manage their clipboard history. Built with SwiftUI and CoreData, it offers a simple interface for macOS that allows users to quickly access previous clipboard items.
+ClipboardManager is a macOS clipboard manager that helps users track and manage their clipboard history. Built with SwiftUI and CoreData, it offers a simple interface for macOS that allows users to quickly access previous clipboard items with persistent storage for long-term access.
 
 ## Features
 
-- **Clipboard Monitoring**: Keeps a running history of items copied to the clipboard.
-- **Favorites**: Mark and access frequently used clipboard items quickly.
-- **Status Bar Integration**: Easily accessible from the macOS status bar.
+- **Clipboard Monitoring**: Keeps a running history of items copied to the clipboard, with the main clipboard menu limited to the most recent 20 items for quick access.
+- **Favorites**: Users can mark items as favourites for unlimited, quick access. Favourites are not limited in number and persist across app restarts thanks to CoreData integration.
+- **Status Bar Integration**: Easily accessible from the macOS status bar with an intuitive interface.
 
 ## How to Use
 
 Once the app is running, it sits in the status bar. Click the icon to view your clipboard history and manage your items.
 
-### Add to Favorites
+### Marking and Unmarking Favorites
 
-- To add an item to favorites, click the star icon next to it.
-
-### Remove from Favorites
-
-- To remove an item from favorites, click the star icon again.
+- To add an item to favourites or remove an item from favourites, hold the Option key while clicking on the item. This allows you to quickly manage your favourite items without navigating through menus.
 
 ### Copy Item to Clipboard
 
-- Simply click on the item to copy it back to the clipboard.
+- Simply click on an item to copy it back to the clipboard.
 
 ## Requirements
 
@@ -34,11 +30,11 @@ Once the app is running, it sits in the status bar. Click the icon to view your 
 
 ## Development
 
-This app was developed using SwiftUI and CoreData. The core functionalities include:
+This app was developed using SwiftUI for the interface and CoreData for persistent storage, ensuring that your clipboard history and favourite items are retained across app launches. The core functionalities include:
 
-- Monitoring clipboard changes.
-- CoreData integration for persistent storage.
-- Status bar menu for quick access.
+- Monitoring clipboard changes and automatically updating the menu.
+- Using CoreData for persistent storage of clipboard items and favourites.
+- Status bar menu for immediate access, with special functions activated by the Option key.
 
 ## Contributing
 
