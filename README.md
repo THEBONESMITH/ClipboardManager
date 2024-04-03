@@ -38,7 +38,7 @@ This app was developed using SwiftUI for the interface and CoreData for persiste
 
 ## Contributing
 
-Feel free to fork the project, submit issues, and send pull requests to contribute to the development of ClipboardManager5.
+Feel free to fork the project, submit issues, and send pull requests to contribute to the development of ClipboardManager.
 
 ## License
 
