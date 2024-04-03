@@ -1,6 +1,6 @@
-# ClipboardManager5
+# ClipboardManager
 
-ClipboardManager5 is a macOS clipboard manager that helps users track and manage their clipboard history. Built with SwiftUI and CoreData, it offers a simple interface for macOS that allows users to quickly access previous clipboard items.
+ClipboardManager is a macOS clipboard manager that helps users track and manage their clipboard history. Built with SwiftUI and CoreData, it offers a simple interface for macOS that allows users to quickly access previous clipboard items.
 
 ## Features
 
