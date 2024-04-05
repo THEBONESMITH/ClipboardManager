@@ -237,53 +237,64 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
         
     func updateStatusBarMenu() {
+        // Create a new menu that will appear in the status bar.
         let menu = NSMenu()
 
-        // Log: Creating Favourites Submenu
+        // Start building the Favourites submenu.
         print("Creating Favourites Submenu...")
+        // This creates a submenu titled "Favourites".
         let favouritesMenu = NSMenu(title: "Favourites")
+        // Fetch favourite clipboard items from Core Data.
         let favouritesItems = fetchFavouriteClipboardItems()
+        // Iterate through each favourite item.
         for item in favouritesItems {
+            // Truncate the content to fit within the menu, appending "..." if needed.
             let menuItemTitle = item.content?.truncating(to: 24, truncationIndicator: "...") ?? ""
+            // Create a menu item for each favourite item.
             let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+            // Attach the ClipboardItem object to the menuItem for later reference.
             menuItem.representedObject = item
-            // No need to set an icon for favourites here as they are inherently favourite items
+            // Add the menuItem to the favouritesMenu.
             favouritesMenu.addItem(menuItem)
         }
+        // Create a main menu item for "Favourites" which contains the favouritesMenu as its submenu.
         let favouritesMenuItem = NSMenuItem(title: "Favourites", action: nil, keyEquivalent: "")
         favouritesMenuItem.submenu = favouritesMenu
+        // Add the "Favourites" submenu to the main menu.
         menu.addItem(favouritesMenuItem)
 
-        // Log: Adding Separator
+        // Add a separator to distinguish between sections of the menu.
         print("Adding Separator...")
         menu.addItem(NSMenuItem.separator())
 
-        // Log: Adding Clipboard Items from the Recent List
+        // Add recent clipboard items to the menu.
         print("Adding Clipboard Items...")
+        // Fetch recent clipboard items from Core Data.
         let clipboardItems = fetchRecentClipboardItems()
         print("Processing \(clipboardItems.count) Clipboard Items for the main menu...")
+        // Iterate through each clipboard item.
         for item in clipboardItems {
+            // Truncate the content to fit within the menu, appending "..." if needed.
             let menuItemTitle = item.content?.truncating(to: 24, truncationIndicator: "...") ?? ""
+            // Create a menu item for each clipboard item.
             let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+            // Attach the ClipboardItem object to the menuItem for later reference.
             menuItem.representedObject = item
-
-            // Apply the favourite icon to favourites for visual feedback
+            // If the item is marked as a favourite, add a star icon for visual feedback.
             if item.isFavourite {
-                print("Applying star to '\(item.content ?? "unknown")' as it's a favourite.")
                 menuItem.image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favourite")
-            } else {
-                print("Item '\(item.content ?? "unknown")' is not a favourite.")
             }
-
+            // Add the menuItem to the main menu.
             menu.addItem(menuItem)
         }
 
-        // Log: Adding Quit Item
+        // Add a quit option to the menu.
         print("Adding Quit Item...")
-        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem.separator()) // Add another separator before the quit option.
+        // Create and add a "Quit" menu item that terminates the app when selected.
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
 
-        // Log: Finished Updating StatusBar Menu
+        // Update the status bar item's menu to the newly created menu.
         print("Finished Updating StatusBar Menu.")
         statusBarItem.menu = menu
     }
@@ -293,29 +304,68 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     
     func createFavouritesSubmenu() -> NSMenu {
-            let submenu = NSMenu(title: "Favourites")
-            let favouriteItems = fetchFavouriteClipboardItems()
-            for item in favouriteItems {
-                let menuItemTitle = item.content?.truncating(to: 24) ?? ""
-                let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
-                menuItem.representedObject = item
-                submenu.addItem(menuItem)
-            }
-            return submenu
+        // Initialize a new submenu with the title "Favourites".
+        let submenu = NSMenu(title: "Favourites")
+
+        // Fetch the list of favourite clipboard items from Core Data.
+        let favouriteItems = fetchFavouriteClipboardItems()
+
+        // Iterate through each favourite item to process and add it to the submenu.
+        for item in favouriteItems {
+            // Truncate the item's content to 24 characters to ensure it fits within the menu display, appending "..." to indicate truncation if needed.
+            let menuItemTitle = item.content?.truncating(to: 24) ?? ""
+
+            // Create a new menu item for the favourite item using its truncated title.
+            // Specify the action to be taken when the menu item is clicked, which is handled by the `clipboardItemClicked(_:)` method.
+            // `keyEquivalent` is set to an empty string as no keyboard shortcut is assigned.
+            let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+
+            // Associate the ClipboardItem object with the menu item for reference. This allows the action method to access the specific ClipboardItem related to the menu item.
+            menuItem.representedObject = item
+
+            // Add the configured menu item to the submenu.
+            submenu.addItem(menuItem)
         }
+
+        // Return the populated submenu. This allows the submenu to be used as part of a larger menu structure, such as in a status bar menu.
+        return submenu
+    }
     
     func addClipboardItems(to menu: NSMenu) {
+        // Fetch the most recent clipboard items stored in the application's database.
         let clipboardItems = fetchRecentClipboardItems()
+
+        // Log to the console the number of clipboard items being processed.
         print("Processing \(clipboardItems.count) Clipboard Items...")
+
+        // Iterate through each clipboard item to add it to the menu.
         for item in clipboardItems {
+            // Truncate the item's content to 24 characters, adding "..." to indicate truncation if necessary.
+            // This ensures the menu item title fits within the menu without making it too wide.
             let menuItemTitle = item.content?.truncating(to: 24, truncationIndicator: "...") ?? ""
+
+            // Create a new NSMenuItem for the clipboard item using the truncated title.
+            // The action `clipboardItemClicked(_:)` is assigned to be triggered when the menu item is selected.
+            // `keyEquivalent` is set to an empty string, meaning no keyboard shortcut is assigned.
             let menuItem = NSMenuItem(title: menuItemTitle, action: #selector(clipboardItemClicked(_:)), keyEquivalent: "")
+
+            // Attach the ClipboardItem object to the NSMenuItem. This is used to identify which clipboard item
+            // the menu item represents when an action is performed.
             menuItem.representedObject = item
+
+            // Log the favourite status of the item to the console. This is useful for debugging purposes
+            // and for understanding the state of each item as it's processed.
             print("Item '\(item.content ?? "unknown")' favourite status: \(item.isFavourite)")
+
+            // If the clipboard item is marked as a favourite, add a star icon to its menu item
+            // for visual feedback to the user. This indicates that the item is special or important.
             if item.isFavourite {
                 print("Applying star to '\(item.content ?? "unknown")'")
                 menuItem.image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: "Favourite")
             }
+
+            // Add the configured menu item to the menu passed into the function.
+            // This populates the menu with the items fetched from the database.
             menu.addItem(menuItem)
         }
     }
